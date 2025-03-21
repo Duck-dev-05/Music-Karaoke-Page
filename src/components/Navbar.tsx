@@ -17,14 +17,14 @@ export default function Navbar() {
               <span className="text-xl font-bold text-indigo-600">Music Karaoke</span>
             </Link>
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-              <Link href="/karaoke" className="text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 border-transparent hover:border-indigo-500">
-                Karaoke
-              </Link>
               <Link href="/songs" className="text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 border-transparent hover:border-indigo-500">
                 Songs
               </Link>
-              <Link href="/playlists" className="text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 border-transparent hover:border-indigo-500">
-                Playlists
+              <Link href="/karaoke" className="text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 border-transparent hover:border-indigo-500">
+                Karaoke
+              </Link>
+              <Link href="/playlist" className="text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 border-transparent hover:border-indigo-500">
+                Playlist
               </Link>
             </div>
           </div>
@@ -89,22 +89,22 @@ export default function Navbar() {
       <div className={`${isMenuOpen ? 'block' : 'hidden'} sm:hidden`}>
         <div className="pt-2 pb-3 space-y-1">
           <Link
-            href="/karaoke"
-            className="block pl-3 pr-4 py-2 border-l-4 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 hover:border-indigo-500"
-          >
-            Karaoke
-          </Link>
-          <Link
             href="/songs"
             className="block pl-3 pr-4 py-2 border-l-4 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 hover:border-indigo-500"
           >
             Songs
           </Link>
           <Link
-            href="/playlists"
+            href="/karaoke"
             className="block pl-3 pr-4 py-2 border-l-4 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 hover:border-indigo-500"
           >
-            Playlists
+            Karaoke
+          </Link>
+          <Link
+            href="/playlist"
+            className="block pl-3 pr-4 py-2 border-l-4 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 hover:border-indigo-500"
+          >
+            Playlist
           </Link>
           {session ? (
             <>

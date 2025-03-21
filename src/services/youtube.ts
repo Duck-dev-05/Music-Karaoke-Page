@@ -1,31 +1,38 @@
-const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
+import { MusicTrack } from './music-sources';
+
+const YOUTUBE_API_KEY = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY;
 const YOUTUBE_API_URL = 'https://www.googleapis.com/youtube/v3';
 
 export interface YouTubeVideo {
   id: string;
   title: string;
-  thumbnail: string;
   channelTitle: string;
+  thumbnail: string;
   duration: string;
 }
 
 export async function searchKaraokeVideos(query: string): Promise<YouTubeVideo[]> {
+  if (!YOUTUBE_API_KEY) {
+    console.error('YouTube API key is not configured');
+    return [];
+  }
+
   try {
-    // First, search for videos
+    // Search for videos
     const searchResponse = await fetch(
-      `${YOUTUBE_API_URL}/search?part=snippet&q=${encodeURIComponent(
+      `${YOUTUBE_API_URL}/search?part=snippet&maxResults=20&q=${encodeURIComponent(
         query + ' karaoke'
-      )}&type=video&videoCategoryId=10&maxResults=10&key=${YOUTUBE_API_KEY}`
+      )}&type=video&key=${YOUTUBE_API_KEY}`
     );
 
     if (!searchResponse.ok) {
-      throw new Error('Failed to fetch videos');
+      throw new Error('Failed to fetch YouTube search results');
     }
 
     const searchData = await searchResponse.json();
     const videoIds = searchData.items.map((item: any) => item.id.videoId).join(',');
 
-    // Then, get video details including duration
+    // Get video details including duration
     const detailsResponse = await fetch(
       `${YOUTUBE_API_URL}/videos?part=contentDetails,snippet&id=${videoIds}&key=${YOUTUBE_API_KEY}`
     );
@@ -39,8 +46,8 @@ export async function searchKaraokeVideos(query: string): Promise<YouTubeVideo[]
     return detailsData.items.map((item: any) => ({
       id: item.id,
       title: item.snippet.title,
-      thumbnail: item.snippet.thumbnails.medium.url,
       channelTitle: item.snippet.channelTitle,
+      thumbnail: item.snippet.thumbnails.medium.url,
       duration: formatDuration(item.contentDetails.duration),
     }));
   } catch (error) {
@@ -51,16 +58,14 @@ export async function searchKaraokeVideos(query: string): Promise<YouTubeVideo[]
 
 function formatDuration(duration: string): string {
   const match = duration.match(/PT(\d+H)?(\d+M)?(\d+S)?/);
-  
-  const hours = (match[1] || '').replace('H', '');
-  const minutes = (match[2] || '').replace('M', '');
-  const seconds = (match[3] || '').replace('S', '');
+  if (!match) return '00:00';
 
-  const parts = [];
-  
-  if (hours) parts.push(hours.padStart(2, '0'));
-  parts.push((minutes || '0').padStart(2, '0'));
-  parts.push((seconds || '0').padStart(2, '0'));
+  const hours = (match[1] ? parseInt(match[1]) : 0);
+  const minutes = (match[2] ? parseInt(match[2]) : 0);
+  const seconds = (match[3] ? parseInt(match[3]) : 0);
 
-  return parts.join(':');
+  if (hours > 0) {
+    return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  }
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 } 

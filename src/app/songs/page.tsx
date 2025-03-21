@@ -1,122 +1,254 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
+import { useState, useEffect } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { 
+  MusicalNoteIcon as MusicIcon, 
+  PlayIcon, 
+  PauseIcon,
+  PlusIcon,
+  UserCircleIcon 
+} from '@heroicons/react/24/outline';
+import { MusicPlayer } from '@/components/MusicPlayer';
+import { cn } from '@/lib/utils';
+import Image from 'next/image';
 
-// Sample song data - replace with actual data from API
-const sampleSongs = [
-  {
-    id: 1,
-    title: 'Bohemian Rhapsody',
-    artist: 'Queen',
-    genre: 'Rock',
-    duration: '5:55',
-  },
-  {
-    id: 2,
-    title: 'Sweet Caroline',
-    artist: 'Neil Diamond',
-    genre: 'Pop',
-    duration: '3:23',
-  },
-  {
-    id: 3,
-    title: 'Don\'t Stop Believin\'',
-    artist: 'Journey',
-    genre: 'Rock',
-    duration: '4:09',
-  },
-  // Add more sample songs as needed
-];
+interface MusicFile {
+  title: string;
+  type: keyof typeof defaultCoverImages; // Ensure type safety for song.type
+  duration: string;
+  path: string;
+  dateAdded: Date;
+  artist?: string;
+  imageUrl?: string;
+}
 
-export default function SongsPage() {
+interface Collection {
+  title: string;
+  count: number;
+  description: string;
+  category: string;
+  gradient: string;
+  songs: MusicFile[];
+}
+
+const defaultCoverImages = {
+  pop: '/Music/covers/default-pop.jpg',
+  rock: '/Music/covers/default-rock.jpg',
+  jazz: '/Music/covers/default-jazz.jpg',
+  classical: '/Music/covers/default-classical.jpg',
+  electronic: '/Music/covers/default-electronic.jpg',
+  other: '/Music/covers/default-music.jpg',
+};
+
+function SongsPage() {
+  const [songs, setSongs] = useState<MusicFile[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedGenre, setSelectedGenre] = useState('all');
+  const [activeTab, setActiveTab] = useState('local');
+  const [currentSong, setCurrentSong] = useState<MusicFile | null>(null);
+  const [autoPlayRequested, setAutoPlayRequested] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const genres = ['all', 'Rock', 'Pop', 'Hip Hop', 'R&B', 'Country'];
+  useEffect(() => {
+    async function fetchMusicData() {
+      try {
+        const response = await fetch('/api/music');
+        const data = await response.json();
+        if (data.success) {
+          const allSongs = data.collections.reduce((acc: MusicFile[], collection: Collection) => {
+            return [...acc, ...collection.songs];
+          }, []);
+          setSongs(allSongs);
+        } else {
+          setError('Failed to load music data.');
+        }
+      } catch (error) {
+        console.error('Error fetching music data:', error);
+        setError('Error fetching music data.');
+      } finally {
+        setIsLoading(false);
+      }
+    }
 
-  const filteredSongs = sampleSongs.filter((song) => {
-    const matchesSearch = song.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      song.artist.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesGenre = selectedGenre === 'all' || song.genre === selectedGenre;
-    return matchesSearch && matchesGenre;
-  });
+    if (activeTab === 'local') {
+      fetchMusicData();
+    } else {
+      setIsLoading(false);
+      setSongs([]);
+    }
+  }, [activeTab]);
+
+  const handlePlayPause = (song: MusicFile) => {
+    if (currentSong?.path === song.path) {
+      setCurrentSong(null);
+    } else {
+      setCurrentSong(song);
+      setAutoPlayRequested(true);
+    }
+  };
+
+  const handleSongEnd = () => {
+    setCurrentSong(null);
+    setAutoPlayRequested(false);
+  };
+
+  const handleDurationChange = (duration: string) => {
+    if (currentSong) {
+      setSongs(prevSongs => 
+        prevSongs.map(song => 
+          song.path === currentSong.path 
+            ? { ...song, duration } 
+            : song
+        )
+      );
+    }
+  };
+
+  const filteredSongs = songs.filter(song =>
+    song.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (song.artist && song.artist.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  const renderContent = () => {
+    if (activeTab !== 'local') {
+      return (
+        <div className="text-center py-12">
+          <MusicIcon className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+          <p className="text-muted-foreground">
+            Connect your {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} account to view songs
+          </p>
+          <Button className="mt-4">
+            Connect {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+          </Button>
+        </div>
+      );
+    }
+
+    if (isLoading) {
+      return (
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Loading music library...</p>
+        </div>
+      );
+    }
+
+    if (!isLoading && filteredSongs.length === 0) {
+      return (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">
+            {searchQuery ? 'No songs found matching your search.' : 'No songs in your library yet.'}
+          </p>
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="text-center py-12">
+          <p className="text-red-500">{error}</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-24">
+        {filteredSongs.map((song, index) => (
+          <Card 
+            key={index} 
+            className={cn(
+              "group hover:bg-muted/50 transition-all duration-300 cursor-pointer overflow-hidden",
+              currentSong?.path === song.path ? "bg-muted/50" : ""
+            )}
+            onClick={() => handlePlayPause(song)}
+          >
+            <CardContent className="p-6">
+              <div className="aspect-square bg-muted/30 rounded-lg mb-4 relative flex items-center justify-center overflow-hidden group/button">
+                {song.imageUrl ? (
+                  <Image
+                    src={song.imageUrl}
+                    alt={song.title}
+                    fill
+                    className="object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                ) : (
+                  <div className="flex items-center justify-center w-full h-full">
+                    <MusicIcon className="w-16 h-16 text-muted-foreground" />
+                  </div>
+                )}
+                <div className={cn(
+                  "absolute inset-0 flex items-center justify-center transition-all duration-300",
+                  "bg-black/0 group-hover:bg-black/60",
+                  "opacity-0 group-hover:opacity-100"
+                )}>
+                  {currentSong?.path === song.path ? (
+                    <PauseIcon className="w-16 h-16 text-white hover:text-white/90 transform scale-90 group-hover:scale-100 transition-all duration-300" />
+                  ) : (
+                    <PlayIcon className="w-16 h-16 text-white hover:text-white/90 transform scale-90 group-hover:scale-100 transition-all duration-300" />
+                  )}
+                </div>
+              </div>
+              <h3 className="font-semibold text-lg truncate mb-1">{song.title}</h3>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                {song.artist && <span className="font-medium text-foreground/80">{song.artist}</span>}
+                {song.artist && song.type && <span>•</span>}
+                <span>{song.type}</span>
+                <span>•</span>
+                <span>{song.duration}</span>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Songs</h1>
-        <div className="flex space-x-4">
-          <input
+    <div className="container mx-auto py-8 px-4">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold">Music Library</h1>
+        <Button className="bg-primary hover:bg-primary/90">
+          <PlusIcon className="w-5 h-5 mr-2" />
+          Add New Song
+        </Button>
+      </div>
+
+      <div className="flex items-center space-x-4 mb-6">
+        <div className="relative flex-1 max-w-md">
+          <Input
             type="text"
             placeholder="Search songs..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="pl-10"
           />
-          <select
-            value={selectedGenre}
-            onChange={(e) => setSelectedGenre(e.target.value)}
-            className="px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            {genres.map((genre) => (
-              <option key={genre} value={genre}>
-                {genre.charAt(0).toUpperCase() + genre.slice(1)}
-              </option>
-            ))}
-          </select>
+          <MusicIcon className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Title
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Artist
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Genre
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Duration
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {filteredSongs.map((song) => (
-              <tr key={song.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">{song.title}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-500">{song.artist}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-500">{song.genre}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-500">{song.duration}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <Link
-                    href={`/songs/${song.id}`}
-                    className="text-indigo-600 hover:text-indigo-900"
-                  >
-                    Sing Now
-                  </Link>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <Tabs defaultValue="local" className="mb-8" onValueChange={setActiveTab}>
+        <TabsList className="grid grid-cols-4">
+          <TabsTrigger value="local">Local Library</TabsTrigger>
+          <TabsTrigger value="spotify">Spotify</TabsTrigger>
+          <TabsTrigger value="mixcloud">Mixcloud</TabsTrigger>
+          <TabsTrigger value="youtube">YouTube Music</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      {renderContent()}
+
+      <MusicPlayer
+        currentSong={currentSong}
+        onClose={handleSongEnd}
+        autoPlay={autoPlayRequested}
+        onDurationChange={handleDurationChange}
+      />
     </div>
   );
-} 
+}
+
+export default SongsPage;
