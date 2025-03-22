@@ -45,9 +45,12 @@ export default function HomePage() {
       try {
         const response = await fetch('/api/music');
         const data = await response.json();
+        console.log('Fetched data:', data);
         if (data.success) {
           setCollections(data.collections);
           setRecentMusic(data.recentMusic);
+        } else {
+          console.error('Data fetch was not successful:', data);
         }
       } catch (error) {
         console.error('Error fetching music data:', error);
@@ -89,16 +92,16 @@ export default function HomePage() {
               <MusicIcon className="w-5 h-5 mr-2" />
               Browse Music
             </Button>
-                    <Button
+            <Button
               size="lg" 
-                      variant="outline"
+              variant="outline"
               className="transition-all duration-300 transform hover:scale-105"
               onClick={handleKaraokeClick}
-                    >
+            >
               <MicrophoneIcon className="w-5 h-5 mr-2" />
               Sing Karaoke
-                    </Button>
-                  </div>
+            </Button>
+          </div>
         </div>
       </section>
 
@@ -160,7 +163,7 @@ export default function HomePage() {
               View All
               <ArrowRightIcon className="w-4 h-4 ml-2" />
             </Button>
-              </div>
+          </div>
 
           {isLoading ? (
             <div className="text-center py-12">
@@ -204,12 +207,12 @@ export default function HomePage() {
                 <ArrowRightIcon className="w-4 h-4 ml-2" />
               </Button>
             </div>
-                {isLoading ? (
-                  <div className="text-center py-12">
-                    <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent mx-auto"></div>
+            {isLoading ? (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent mx-auto"></div>
                 <p className="mt-4 text-muted-foreground">Loading recent music...</p>
-                  </div>
-                ) : (
+              </div>
+            ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {recentMusic.map((song, index) => (
                   <Card 
@@ -220,7 +223,7 @@ export default function HomePage() {
                     <CardContent className="flex items-center gap-4 p-4">
                       <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center group-hover:bg-primary/20 transition-colors">
                         <MusicIcon className="w-6 h-6 text-primary" />
-                          </div>
+                      </div>
                       <div className="flex-1 min-w-0">
                         <h4 className="font-medium truncate">{song.title}</h4>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -228,7 +231,7 @@ export default function HomePage() {
                           <span>•</span>
                           <span>{song.duration}</span>
                         </div>
-                          </div>
+                      </div>
                       <Button 
                         variant="ghost" 
                         size="icon" 
@@ -241,11 +244,11 @@ export default function HomePage() {
                       >
                         <PlayIcon className="w-5 h-5" />
                       </Button>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -256,11 +259,11 @@ export default function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
             <div>
               <h3 className="font-bold text-lg mb-4">About Us</h3>
-                    <p className="text-muted-foreground">
+              <p className="text-muted-foreground">
                 Your ultimate destination for karaoke entertainment. 
                 We bring together the best music from multiple platforms.
-                    </p>
-                  </div>
+              </p>
+            </div>
             <div>
               <h3 className="font-bold text-lg mb-4">Quick Links</h3>
               <ul className="space-y-2">
@@ -306,8 +309,8 @@ export default function HomePage() {
           <div className="text-center text-sm text-muted-foreground">
             <p>&copy; 2024 Karaoke App. All rights reserved.</p>
           </div>
-              </div>
+        </div>
       </footer>
-      </div>
+    </div>
   );
 } 
